@@ -1,0 +1,76 @@
+<html>
+   <head>
+       <!-- https://socket.io/docs/v3/client-api/index.html -->
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.2/socket.io.js" integrity="sha512-YybopSVjZU0fe8TY4YDuQbP5bhwpGBE/T6eBUEZ0usM72IWBfWrgVI13qfX4V2A/W7Hdqnm7PIOYOwP9YHnICw==" crossorigin="anonymous"></script>
+   </head>
+   <body>
+       <label>Match Id</label>
+       <input type="text" id="matchid" value="1234" />
+       <label>Token</label>
+       <input type="text" id="token" value="Bearer Auth0Token" />
+       <label>Locale</label>
+       <input type="text" id="locale" value="en" />
+       <button id="liveFeedSubToggle">Subscribe</button>
+       <button id="UnsubToggle">Unsubscribe</button>
+       <button id="clear">Clear</button>
+       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+            <summary style="font-weight: 600;">Timeline</summary>
+            <div id="new_event"></div>
+       </details>
+       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+            <summary style="font-weight: 600;">Info</summary>
+            <div id="info_stream"></div>
+       </details>
+       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+            <summary style="font-weight: 600;">Pong from server (pong)</summary>
+            <div id="pong"></div>
+       </details>
+       <script>
+           const socket = io("https://betting.stage.brainanalytics.co");
+           socket.on('pong', (data) => {
+               console.log('pong', data);
+               document.getElementById('pong').innerHTML = `<div>${JSON.stringify(data)}</div><br>`;
+           });
+           socket.on('new_event', (data) => {
+               console.log('New event received', data);
+               document.getElementById('new_event').innerHTML = document.getElementById('new_event').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
+           });
+           socket.on('info_stream', (data) => {
+               console.log('Info received', data);
+               document.getElementById('info_stream').innerHTML = document.getElementById('info_stream').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
+           });
+           function ping() {
+               const current = new Date();
+               const timestamp = current.getTime();
+               socket.emit('ping', {timestamp});
+           }
+           function liveFeedSub(matchId, token, locale) {
+               socket.emit('subscribe_match', {match_id: matchId.toString(), token: token.toString(), locale: locale});
+           }
+           function liveFeedUnsub(matchId) {
+               socket.emit('unsubscribe_match', {match_id: matchId.toString()});
+           }
+           function clear() {
+               document.getElementById('info_stream').innerHTML = '';
+               document.getElementById('new_event').innerHTML = '';
+               document.getElementById('pong').innerHTML = '';
+           }
+           setInterval(() => {
+               ping();
+           }, 20000);
+            document.getElementById("liveFeedSubToggle").addEventListener("click", function() {
+                const matchid = document.getElementById("matchid").value;
+                const token = document.getElementById("token").value;
+                const locale = document.getElementById("locale").value;
+                liveFeedSub(matchid, token, locale);
+            });
+            document.getElementById("UnsubToggle").addEventListener("click", function() {
+                const matchid = document.getElementById("matchid").value;
+                liveFeedUnsub(matchid);
+            });
+            document.getElementById("clear").addEventListener("click", function() {
+                clear();
+            });
+       </script>
+   </body>
+</html>
