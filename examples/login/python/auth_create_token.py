@@ -10,8 +10,8 @@ stage_audience = 'https://api.stage.brainanalytics.co'
 prod_audience = 'https://api.prod.brainanalytics.co'
 
 payload = {
-    'client_id': 'JRkig70ogdt3xGjHbVOLlW45Dl6TWDAw',
-    'client_secret': 'BerPFNzclMwhmi1wn5u2t7sJKNAZFtYu9x5ZuwKLKGRUFKxZHzgNda07dCgYww9h',
+    'client_id': 'xxx',
+    'client_secret': 'xxx',
     'audience': stage_audience,
     'grant_type': 'client_credentials'
 }
