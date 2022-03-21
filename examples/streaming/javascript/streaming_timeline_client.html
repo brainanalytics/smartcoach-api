@@ -1,76 +1,118 @@
 <html>
-   <head>
-       <!-- https://socket.io/docs/v3/client-api/index.html -->
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.2/socket.io.js" integrity="sha512-YybopSVjZU0fe8TY4YDuQbP5bhwpGBE/T6eBUEZ0usM72IWBfWrgVI13qfX4V2A/W7Hdqnm7PIOYOwP9YHnICw==" crossorigin="anonymous"></script>
-   </head>
-   <body>
-       <label>Match Id</label>
-       <input type="text" id="matchid" value="1234" />
-       <label>Token</label>
-       <input type="text" id="token" value="Bearer Auth0Token" />
-       <label>Locale</label>
-       <input type="text" id="locale" value="en" />
-       <button id="liveFeedSubToggle">Subscribe</button>
-       <button id="UnsubToggle">Unsubscribe</button>
-       <button id="clear">Clear</button>
-       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
-            <summary style="font-weight: 600;">Timeline</summary>
-            <div id="new_event"></div>
-       </details>
-       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
-            <summary style="font-weight: 600;">Info</summary>
-            <div id="info_stream"></div>
-       </details>
-       <details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
-            <summary style="font-weight: 600;">Pong from server (pong)</summary>
-            <div id="pong"></div>
-       </details>
-       <script>
-           const socket = io("https://betting.stage.brainanalytics.co");
-           socket.on('pong', (data) => {
-               console.log('pong', data);
-               document.getElementById('pong').innerHTML = `<div>${JSON.stringify(data)}</div><br>`;
-           });
-           socket.on('new_event', (data) => {
-               console.log('New event received', data);
-               document.getElementById('new_event').innerHTML = document.getElementById('new_event').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
-           });
-           socket.on('info_stream', (data) => {
-               console.log('Info received', data);
-               document.getElementById('info_stream').innerHTML = document.getElementById('info_stream').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
-           });
-           function ping() {
-               const current = new Date();
-               const timestamp = current.getTime();
-               socket.emit('ping', {timestamp});
-           }
-           function liveFeedSub(matchId, token, locale) {
-               socket.emit('subscribe_match', {match_id: matchId.toString(), token: token.toString(), locale: locale});
-           }
-           function liveFeedUnsub(matchId) {
-               socket.emit('unsubscribe_match', {match_id: matchId.toString()});
-           }
-           function clear() {
-               document.getElementById('info_stream').innerHTML = '';
-               document.getElementById('new_event').innerHTML = '';
-               document.getElementById('pong').innerHTML = '';
-           }
-           setInterval(() => {
-               ping();
-           }, 20000);
-            document.getElementById("liveFeedSubToggle").addEventListener("click", function() {
-                const matchid = document.getElementById("matchid").value;
-                const token = document.getElementById("token").value;
-                const locale = document.getElementById("locale").value;
-                liveFeedSub(matchid, token, locale);
-            });
-            document.getElementById("UnsubToggle").addEventListener("click", function() {
-                const matchid = document.getElementById("matchid").value;
-                liveFeedUnsub(matchid);
-            });
-            document.getElementById("clear").addEventListener("click", function() {
-                clear();
-            });
-       </script>
-   </body>
+<head>
+    <!-- This HTML page helps to understand how to connect to the websocket and listen timeline events and insights -->
+    <!-- Please note that this example doesn't include reconnection solutions, which needs to be implemented in a production environment -->
+    <!-- https://socket.io/docs/v3/client-api/index.html -->
+    <script type="importmap">
+  {
+    "imports": {
+      "socket.io-client": "https://cdn.socket.io/4.4.1/socket.io.esm.min.js"
+    }
+  }
+
+    </script>
+</head>
+<body>
+<label>Match Id</label>
+<input type="text" id="matchid" value="5224121"/>
+<label>Token</label>
+<input type="text" id="token"
+       value="Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlJrVTJSRGd6UWtVMVFqTTJNVVEyT0RneE9FWkVRVVZETlRsRVJEaEdSVEV5TlVGRlJqWTJNUSJ9.eyJpc3MiOiJodHRwczovL2xvZ2luLnNtYXJ0Y29hY2guY2x1Yi8iLCJzdWIiOiJKUmtpZzcwb2dkdDN4R2pIYlZPTGxXNDVEbDZUV0RBd0BjbGllbnRzIiwiYXVkIjoiaHR0cHM6Ly9hcGkuZGV2LmJyYWluYW5hbHl0aWNzLmNvIiwiaWF0IjoxNjIxOTM1NjU2LCJleHAiOjE2MjIwMjIwNTYsImF6cCI6IkpSa2lnNzBvZ2R0M3hHakhiVk9MbFc0NURsNlRXREF3Iiwic2NvcGUiOiJyZWFkOmJldHRpbmcgcmVhZDpsaXZlZmVlZCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsInBlcm1pc3Npb25zIjpbInJlYWQ6YmV0dGluZyIsInJlYWQ6bGl2ZWZlZWQiXX0.rkd26MbpvLpBQ4s78GN4pjsdw5yr52I6LS6cdrmgy--Tx-BslFSQe1zEKmZLuEDfDuxHquwLsuIUBviFFjCiVIOg_32ghdLebzU9lHbr9UHL_SJLgCMUTJ7j7lGSpWqx69wwp4hjwZ8XeuNSGkUU9Ea3rXY1Wf96VQLueImM6SKgrClAwyFVneqWYpCfFgtxBb-citsW4Mst-0spEslzAwxDmnsTt-wSjn_15F246H15Rw_x_JSOGo3vpifV8JGFEDZUfHZQksZSSMw4OSHGFJvp3BzthcwzX-_hWGCtk6dsr-jeUGwtu9iC8f8gtDAq8mgbL62uiDfBjJ5ZTh9BOg"/>
+<label>Locale</label>
+<input type="text" id="locale" value="en"/>
+<button id="liveFeedSubToggle">Subscribe</button>
+<button id="UnsubToggle">Unsubscribe</button>
+<button id="clear">Clear</button>
+<details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+    <summary style="font-weight: 600;">Timeline</summary>
+    <div id="new_event"></div>
+</details>
+<details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+    <summary style="font-weight: 600;">Info</summary>
+    <div id="info_stream"></div>
+</details>
+<details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+    <summary style="font-weight: 600;">Event disqualified received</summary>
+    <div id="event_disqualified"></div>
+</details>
+<details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+    <summary style="font-weight: 600;">Timeline subscrine ping received</summary>
+    <div id="timeline_subscribed"></div>
+</details>
+<details open style="flex: 1;box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);border-radius: 10px;padding: 20px;">
+    <summary style="font-weight: 600;">Pong from server (pong)</summary>
+    <div id="pong"></div>
+</details>
+<script type="module">
+    // const io = require("socket.io-client");
+    // or with import syntax
+    import { io } from "socket.io-client";
+    const socket = io("https://api.live.smartcoach.club");
+   
+    // pong -> check if you are connected to the server
+    socket.on('pong', (data) => {
+        console.log('pong', data);
+        document.getElementById('pong').innerHTML = `<div>${JSON.stringify(data)}</div><br>`;
+    });
+    // event_disqualified -> Use this to debug what insight is not sent
+    socket.on('event_disqualified', (data) => {
+        console.log('event_disqualified', data);
+        document.getElementById('event_disqualified').innerHTML = `<div>${JSON.stringify(data)}</div><br>`;
+    });
+    // timeline_subscribed -> Send a message every 30 seconds with the match_ids and language your client is connected to.
+    // Allows to check if you are still receiving events for a particular match
+    // If this message is not received every 30 seconds, reconnection is necessary
+    socket.on('timeline_subscribed', (data) => {
+        console.log('timeline_subscribed', data);
+        document.getElementById('timeline_subscribed').innerHTML = `<div>${JSON.stringify(data)}</div><br>`;
+    });
+    // new_event -> Event feed
+    socket.on('new_event', (data) => {
+        console.log('New event received', data);
+        document.getElementById('new_event').innerHTML = document.getElementById('new_event').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
+    });
+    // info_stream -> Receive match informations
+    socket.on('info_stream', (data) => {
+        console.log('Info received', data);
+        document.getElementById('info_stream').innerHTML = document.getElementById('info_stream').innerHTML + `<div>${JSON.stringify(data)}</div><br>`;
+    });
+
+    function ping() {
+        const current = new Date();
+        const timestamp = current.getTime();
+        socket.emit('ping', {timestamp});
+    }
+
+    function liveFeedSub(matchId, token, locale) {
+        socket.emit('subscribe_match', {match_id: matchId.toString(), token: token.toString(), locale: locale});
+    }
+
+    function liveFeedUnsub(matchId) {
+        socket.emit('unsubscribe_match', {match_id: matchId.toString()});
+    }
+
+    function clear() {
+        document.getElementById('info_stream').innerHTML = '';
+        document.getElementById('new_event').innerHTML = '';
+        document.getElementById('pong').innerHTML = '';
+    }
+
+    setInterval(() => {
+        ping();
+    }, 20000);
+    document.getElementById("liveFeedSubToggle").addEventListener("click", function () {
+        const matchid = document.getElementById("matchid").value;
+        const token = document.getElementById("token").value;
+        const locale = document.getElementById("locale").value;
+        liveFeedSub(matchid, token, locale);
+    });
+    document.getElementById("UnsubToggle").addEventListener("click", function () {
+        const matchid = document.getElementById("matchid").value;
+        liveFeedUnsub(matchid);
+    });
+    document.getElementById("clear").addEventListener("click", function () {
+        clear();
+    });
+</script>
+</body>
 </html>
