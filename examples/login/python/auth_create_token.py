@@ -12,7 +12,7 @@ prod_audience = 'https://api.prod.brainanalytics.co'
 payload = {
     'client_id': 'xxx',
     'client_secret': 'xxx',
-    'audience': stage_audience,
+    'audience': prod_audience,
     'grant_type': 'client_credentials'
 }
 
